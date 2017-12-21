@@ -6,6 +6,11 @@ output:
 --- 
 
 
+### Introduction
+
+The numbers were rounded to the next integer.
+
+
 ### Loading and preprocessing the data
 
 
@@ -65,11 +70,10 @@ ggplot(steps_date, aes(steps)) + geom_histogram(binwidth = 500, fill = "firebric
 
 #### Mean and median of the total number of steps taken each day
 
-The mean of steps taken each day is 9354.2295082, and the median is 10395
+The mean of steps taken each day is 9355, and the median is 10395
 
 
 ### What is the average daily activity pattern?
-
 
 
 ```r
@@ -80,7 +84,7 @@ top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1) %>% extract2
 ```
 
 ```r
-steps_interval$steps %>% plot(type = "l", ann = FALSE)
+steps_interval %>% plot(type = "l", ann = FALSE)
 title(xlab = "Interval", ylab = "Steps taken", main = "Mean of steps take by interval")
 grid()
 ```
@@ -95,30 +99,100 @@ The interval 835 contains the maximum number of steps.
 
 ### Imputing missing values
 
-I will use the median to impute missing values
+#### Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+
 
 ```r
-steps_raw %>% filter(is.na(steps)) %>% count(date)
+number_na <- steps_raw %>% filter(is.na(steps)) %>% nrow
+```
+
+The grand total of NA's in the dataset is 2304.  
+
+
+#### Devise a strategy for filling in all of the missing values in the dataset
+
+
+I will use the median for the 5-minute interval of the same weekday across the whole period to impute missing values.  
+
+#### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+
+```r
+# imputed values
+steps_median <- steps_raw %>% 
+  mutate(day = wday(date, label = TRUE, abbr = FALSE)) %>% group_by(interval, day) %>%
+  summarise(steps_median = median(steps, na.rm = TRUE) %>% ceiling %>% as.integer()) %>% ungroup()
+# replace them
+steps_imputed <- steps_raw %>% mutate(day = wday(date, label = TRUE, abbr = FALSE)) %>% 
+  left_join(steps_median) %>% mutate(steps = ifelse(is.na(steps), steps_median, steps)) %>% 
+  select(-day, -steps_median)
 ```
 
 ```
-## # A tibble: 8 x 2
-##         date     n
-##       <date> <int>
-## 1 2012-10-01   288
-## 2 2012-10-08   288
-## 3 2012-11-01   288
-## 4 2012-11-04   288
-## 5 2012-11-09   288
-## 6 2012-11-10   288
-## 7 2012-11-14   288
-## 8 2012-11-30   288
+## Joining, by = c("interval", "day")
 ```
 
+#### Make a histogram of the total number of steps taken each day
+
+
+```r
+steps_imputed_day <- steps_imputed %>% 
+  count(date, wt = steps) 
+steps_imputed_day%>% ggplot(aes(n)) + geom_histogram(binwidth = 500, fill = "forestgreen")
+```
+
+![](PA1_template_files/figure-html/steps_day_imputed_histogram-1.png)<!-- -->
+
+#### Calculate and report the mean and median total number of steps taken per day
+
+
+```r
+number_steps_day_imputed_mean <- steps_imputed_day$n %>% mean %>% ceiling()
+number_steps_day_imputed_median <- steps_imputed_day$n %>% median
+```
+
+The mean of the steps taken per day of the imputed data is 9706, 
+and the median of the steps taken per day of the imputed data is 10395.  
+
+The median of the imputed data is the same than the original, but the mean increased from 
+9355 to 10395.  
+
+The imputation has no effect in the median, but increased the mean.  
 
 
 ### Are there differences in activity patterns between weekdays and weekends?
 
+#### Create a new factor variable in the dataset with two levels – “weekday” and “weekend”
+
+
+```r
+steps_imputed_enriched <- steps_imputed %>% 
+  mutate(day     = wday(date, label = TRUE)) %>% 
+  mutate(weekend = ifelse(day %in% c("Sat", "Sun"), "weekend", "weekday")) %>% 
+  select(-day)
+```
+
+#### Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+
+```r
+# aggregation
+steps_imputed_weekday <- steps_imputed_enriched %>% 
+  group_by(interval, weekend) %>% 
+  summarise(steps = mean(steps, na.rm = TRUE) %>% ceiling())
+```
+
+```r
+# viz 
+steps_imputed_weekday %>% 
+  ggplot(aes(interval, steps, color = weekend)) +
+  geom_line() + facet_grid(weekend ~ .) +
+  theme(legend.position = "none") +
+  labs(x = "Interval", y = "Steps", title = "Mean of steps taken by interval")
+```
+
+![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
 
 
 ### Conclusions  
