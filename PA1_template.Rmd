@@ -3,15 +3,36 @@ title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
     keep_md: true
----
+--- 
 
 
 ## Loading and preprocessing the data
 
+```{r confi}
+library(tidyverse)
+library(knitr)
+library(lubridate)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+```{r load}
+data_raw <- read_csv("activity.zip")
 
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r viz_steps_day}
+steps_day_mean <- data_raw %>% 
+  count(date, wt = steps) %>%
+  mutate(day = wday(date, label = TRUE, abbr = F)) %>% 
+  group_by(day) %>% summarise(mean_day = mean(n, na.rm = TRUE))
+# plot
+ggplot(steps_day_mean, aes(day, mean_day)) +
+  geom_bar(stat = "identity", fill = "forestgreen") +
+  labs(x = "Day of the week", y = "Steps", 
+       title = "Mean of steps taken per day")
+  
+```
 
 
 ## What is the average daily activity pattern?
