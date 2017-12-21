@@ -8,15 +8,16 @@ output:
 
 ## Loading and preprocessing the data
 
-```{r confi}
+```{r confi, message = FALSE}
 library(tidyverse)
 library(knitr)
 library(lubridate)
+# shown code, and cache results the default
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 ```{r load}
+# read_csv can read zip files
 data_raw <- read_csv("activity.zip")
-
 ```
 
 ## What is mean total number of steps taken per day?
