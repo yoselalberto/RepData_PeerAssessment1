@@ -23,11 +23,12 @@ data_raw <- read_csv("activity.zip")
 ## What is mean total number of steps taken per day?
 
 ```{r viz_steps_day}
+# first get total steps by date, then average them by weekday
 steps_day_mean <- data_raw %>% 
   count(date, wt = steps) %>%
   mutate(day = wday(date, label = TRUE, abbr = F)) %>% 
   group_by(day) %>% summarise(mean_day = mean(n, na.rm = TRUE))
-# plot
+# barplot of the mean of the total steps taken each day
 ggplot(steps_day_mean, aes(day, mean_day)) +
   geom_bar(stat = "identity", fill = "forestgreen") +
   labs(x = "Day of the week", y = "Steps", 
