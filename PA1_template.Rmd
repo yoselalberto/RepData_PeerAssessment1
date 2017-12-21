@@ -9,45 +9,73 @@ output:
 ### Loading and preprocessing the data
 
 ```{r confi, message = FALSE}
-library(tidyverse)
-library(knitr)
-library(lubridate)
+library(magrittr)
+library(tidyverse) # useful packages for data science
+library(knitr)     
+library(lubridate) # makes handle dates easy
 # shown code, and cache results the default
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
 ```{r load_data}
-# read_csv can read zip files
-data_raw <- read_csv("activity.zip")
+# readr::read_csv can read zip files
+steps_raw <- read_csv("activity.zip") %>% as.tibble()
 ```
 
 ### What is mean total number of steps taken per day?
 
-```{r viz_steps_day}
+The data contains missing values, I will ignore them for the moment.
+
+```{r steps_agregation} 
+# total steps per day
+steps_date <- steps_raw %>% group_by(date) %>% summarise(steps = sum(steps, na.rm = TRUE))
 # first get total steps by date, then average them by weekday
-steps_day_mean <- data_raw %>% 
+steps_day_mean <- steps_raw %>% 
   count(date, wt = steps) %>%
   mutate(day = wday(date, label = TRUE, abbr = F)) %>% 
+  mutate(day = fct_shift(day)) %>% 
   group_by(day) %>% summarise(mean_day = mean(n, na.rm = TRUE))
-# time series
-data_raw %>% count(date, wt = steps) %>% plot(type = "b", pch = 19, cex = .5); grid()
-# barplot of the mean of the total steps taken each day
-ggplot(steps_day_mean, aes(day, mean_day)) +
-  geom_bar(stat = "identity", fill = "forestgreen") +
-  labs(x = "Day of the week", y = "Steps", 
-       title = "Mean of steps taken per day")
-  
 ```
+```{r viz_steps_day_total}
+plot(steps_date, type = "b", pch = 19, cex = .5, ann = FALSE)
+title(xlab = "Date", ylab = "Steps", main = "Total steps taken per day")
+grid()
+```
+```{r viz_steps_day_histogram}
+ggplot(steps_date, aes(steps)) + geom_histogram(binwidth = 500, fill = "firebrick") + 
+  labs(x = "Steps", y = "Days", title = "Total number of steps taken each day")
+```
+
+#### Mean and median of the total number of steps taken each day
+
+The mean of steps taken each day is `r  mean(steps_date$steps)`, and the median is `r  median(steps_date$steps)`
 
 
 ### What is the average daily activity pattern?
 
+
+```{r interval_aggregation}
+steps_interval <- steps_raw %>% 
+  group_by(interval) %>% summarise(steps = mean(steps, na.rm = TRUE) %>% ceiling)
+# most active interval
+top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1) %>% extract2(c(1, 1))
+```
+```{r viz_steps_interval}
+steps_interval$steps %>% plot(type = "l", ann = FALSE)
+title(xlab = "Interval", ylab = "Steps taken", main = "Mean of steps take by interval")
+grid()
+```
+
+
+
+#### The 5-minute interval that, on average, contains the maximum number of steps
+The interval `r top_interval` contains the maximum number of steps.
 
 
 ### Imputing missing values
 
 I will use the median to impute missing values
 ```{r explore_missing_values}
-data_raw %>% filter(is.na(steps)) %>% count(date)
+steps_raw %>% filter(is.na(steps)) %>% count(date)
 ```
 
 
