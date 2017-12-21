@@ -6,7 +6,7 @@ output:
 --- 
 
 
-## Loading and preprocessing the data
+### Loading and preprocessing the data
 
 ```{r confi, message = FALSE}
 library(tidyverse)
@@ -15,12 +15,12 @@ library(lubridate)
 # shown code, and cache results the default
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
-```{r load}
+```{r load_data}
 # read_csv can read zip files
 data_raw <- read_csv("activity.zip")
 ```
 
-## What is mean total number of steps taken per day?
+### What is mean total number of steps taken per day?
 
 ```{r viz_steps_day}
 # first get total steps by date, then average them by weekday
@@ -28,6 +28,8 @@ steps_day_mean <- data_raw %>%
   count(date, wt = steps) %>%
   mutate(day = wday(date, label = TRUE, abbr = F)) %>% 
   group_by(day) %>% summarise(mean_day = mean(n, na.rm = TRUE))
+# time series
+data_raw %>% count(date, wt = steps) %>% plot(type = "b", pch = 19, cex = .5); grid()
 # barplot of the mean of the total steps taken each day
 ggplot(steps_day_mean, aes(day, mean_day)) +
   geom_bar(stat = "identity", fill = "forestgreen") +
@@ -37,12 +39,25 @@ ggplot(steps_day_mean, aes(day, mean_day)) +
 ```
 
 
-## What is the average daily activity pattern?
+### What is the average daily activity pattern?
 
 
 
-## Imputing missing values
+### Imputing missing values
+
+I will use the median to impute missing values
+```{r explore_missing_values}
+data_raw %>% filter(is.na(steps)) %>% count(date)
+```
 
 
 
-## Are there differences in activity patterns between weekdays and weekends?
+### Are there differences in activity patterns between weekdays and weekends?
+
+
+
+### Conclusions  
+
+
+
+
