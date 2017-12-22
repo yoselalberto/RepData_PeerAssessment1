@@ -5,7 +5,7 @@ output:
     keep_md: true
 --- 
 
-### Settings and loading the data
+### Settings
 
 ```{r confi, message = FALSE}
 # load used packages
@@ -16,6 +16,10 @@ library(lubridate)
 # shown code, and cache results the default
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 ```
+
+#### Loading the data
+
+
 ```{r load_data, message = FALSE}
 # readr::read_csv can read zip files     
 steps_raw <- read_csv("activity.zip") %>% as.tibble()
@@ -28,11 +32,6 @@ The data contains missing values, I will ignore them for the moment.
 ```{r steps_agregation} 
 # total steps per day
 steps_date <- steps_raw %>% group_by(date) %>% summarise(steps = sum(steps, na.rm = TRUE))
-```
-```{r viz_steps_day_total}
-plot(steps_date, type = "b", pch = 19, cex = .5, ann = FALSE)
-title(xlab = "Date", ylab = "Steps", main = "Total steps taken per day")
-grid()
 ```
 
 The next histogram shows the total number of steps taken each day.
