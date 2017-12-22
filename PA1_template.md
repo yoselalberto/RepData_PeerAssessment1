@@ -56,10 +56,9 @@ The mean of steps taken each day is 9354.23, and the median is 10395
 
 
 ```r
+# compute mean of steps taken by day
 steps_interval <- steps_raw %>% 
   group_by(interval) %>% summarise(steps = mean(steps, na.rm = TRUE))
-# most active interval
-top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1)
 ```
 
 ```r
@@ -70,9 +69,12 @@ grid()
 
 ![](PA1_template_files/figure-html/viz_steps_interval-1.png)<!-- -->
 
-
-
 #### Most active interval
+
+```r
+top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1)
+```
+
 The interval 835 contains the maximum, on average, number of steps, 206.17 steps.
 
 
@@ -80,7 +82,7 @@ The interval 835 contains the maximum, on average, number of steps, 206.17 steps
 
 #### Missing values in the dataset
 
-The only column with missing values is steps.
+The only column with missing values is *steps*.
 
 
 ```r
@@ -96,12 +98,12 @@ number_na
 There are 2304 missing values in the dataset.  
 
 
-#### Devise a strategy for filling in all of the missing values
+#### Strategy for filling in all of the missing values
 
 I will use the median for the 5-minute interval of the same weekday across the whole period to impute missing values.
 
 
-#### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+#### Dataset with the missing data filled in
 
 
 ```r
@@ -135,34 +137,32 @@ steps_imputed_day %>%
 
 ![](PA1_template_files/figure-html/steps_day_imputed_histogram-1.png)<!-- -->
 
-#### Calculate and report the mean and median total number of steps taken per day
+#### Mean and median of steps taken per day of the imputed data
 
-The mean of the steps taken per day of the imputed data is 9705.24, 
-and the median is 1.0395\times 10^{4}.  
-
-The median of the imputed data is the same than the original, but the mean increased from 
+The mean of the steps taken per day is 9705.24, 
+and the median is 1.0395\times 10^{4}. The median of the
+imputed data is the same as the original, but the mean increased from 
 9354.23 to 9705.24.  
 
-The imputation has no effect in the median, but increased the mean.  
 
+### Differences in activity patterns between weekdays and weekends
 
-### Are there differences in activity patterns between weekdays and weekends?
-
-#### Create a new factor variable in the dataset with two levels – “weekday” and “weekend”
+#### New variable in the dataset with two levels – “weekday” and “weekend”
 
 
 ```r
+# add variable pointing if the day is in the weekend
 steps_imputed_enriched <- steps_imputed %>% 
   mutate(day     = wday(date, label = TRUE, abbr = FALSE)) %>% 
   mutate(weekend = ifelse(day %in% c("sábado", "domingo"), "weekend", "weekday")) %>%   
   select(-day)
 ```
 
-#### Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+#### Average of steps taken per 5-minutes interval
 
 
 ```r
-# aggregation
+# average number of steps per interval, and weekdays and weekend
 steps_imputed_weekday <- steps_imputed_enriched %>%  
   group_by(interval, weekend) %>% 
   summarise(steps = mean(steps, na.rm = TRUE) %>% ceiling())
@@ -174,8 +174,9 @@ steps_imputed_weekday %>%
   ggplot(aes(interval, steps, color = weekend)) +
   geom_line() + facet_grid(weekend ~ .) +
   theme(legend.position = "none") +
-  labs(x = "Interval", y = "Steps", title = "Mean of steps taken by interval")
+  labs(x = "Interval", y = "Steps", title = "Mean of steps taken by interval",
+       subtitle = "Imputed data")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 

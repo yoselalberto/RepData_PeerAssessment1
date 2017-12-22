@@ -49,10 +49,9 @@ The mean of steps taken each day is `r  round(mean(steps_date$steps), digits = 2
 ### What is the average daily activity pattern?
 
 ```{r interval_aggregation}
+# compute mean of steps taken by day
 steps_interval <- steps_raw %>% 
   group_by(interval) %>% summarise(steps = mean(steps, na.rm = TRUE))
-# most active interval
-top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1)
 ```
 ```{r viz_steps_interval}
 steps_interval %>% plot(type = "l", ann = FALSE)
@@ -60,9 +59,11 @@ title(xlab = "Interval", ylab = "Steps taken", main = "Mean of steps take by int
 grid()
 ```
 
-
-
 #### Most active interval
+```{r top_interval}
+top_interval <- steps_interval %>% arrange(desc(steps)) %>% head(1)
+```
+
 The interval `r top_interval[1, 1]` contains the maximum, on average, number of steps, `r top_interval[1, 2] %>% round(digits = 2)` steps.
 
 
@@ -70,7 +71,7 @@ The interval `r top_interval[1, 1]` contains the maximum, on average, number of 
 
 #### Missing values in the dataset
 
-The only column with missing values is steps.
+The only column with missing values is *steps*.
 
 ```{r explore_missing_values}
 number_na <- steps_raw %>% filter(is.na(steps)) %>% nrow
@@ -81,12 +82,12 @@ number_na
 There are `r number_na` missing values in the dataset.  
 
 
-#### Devise a strategy for filling in all of the missing values
+#### Strategy for filling in all of the missing values
 
 I will use the median for the 5-minute interval of the same weekday across the whole period to impute missing values.
 
 
-#### Create a new dataset that is equal to the original dataset but with the missing data filled in.
+#### Dataset with the missing data filled in
 
 ```{r imputing_na}
 # imputed values
@@ -112,32 +113,30 @@ steps_imputed_day %>%
        subtitle = "Imputed data")
 ```
 
-#### Calculate and report the mean and median total number of steps taken per day
+#### Mean and median of steps taken per day of the imputed data
 
-The mean of the steps taken per day of the imputed data is `r mean(steps_imputed_day$n) %>% round(digits = 2)`, 
-and the median is `r median(steps_imputed_day$n) %>% round(digits = 2)`.  
-
-The median of the imputed data is the same than the original, but the mean increased from 
+The mean of the steps taken per day is `r mean(steps_imputed_day$n) %>% round(digits = 2)`, 
+and the median is `r median(steps_imputed_day$n) %>% round(digits = 2)`. The median of the
+imputed data is the same as the original, but the mean increased from 
 `r  mean(steps_date$steps) %>% round(digits = 2)` to `r mean(steps_imputed_day$n) %>% round(digits = 2)`.  
 
-The imputation has no effect in the median, but increased the mean.  
 
+### Differences in activity patterns between weekdays and weekends
 
-### Are there differences in activity patterns between weekdays and weekends?
+#### New variable in the dataset with two levels – “weekday” and “weekend”
 
-#### Create a new factor variable in the dataset with two levels – “weekday” and “weekend”
-
-```{r }
+```{r is_weekend}
+# add variable pointing if the day is in the weekend
 steps_imputed_enriched <- steps_imputed %>% 
   mutate(day     = wday(date, label = TRUE, abbr = FALSE)) %>% 
   mutate(weekend = ifelse(day %in% c("sábado", "domingo"), "weekend", "weekday")) %>%   
   select(-day)
 ```
 
-#### Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+#### Average of steps taken per 5-minutes interval
 
 ```{r}
-# aggregation
+# average number of steps per interval, and weekdays and weekend
 steps_imputed_weekday <- steps_imputed_enriched %>%  
   group_by(interval, weekend) %>% 
   summarise(steps = mean(steps, na.rm = TRUE) %>% ceiling())
@@ -148,6 +147,7 @@ steps_imputed_weekday %>%
   ggplot(aes(interval, steps, color = weekend)) +
   geom_line() + facet_grid(weekend ~ .) +
   theme(legend.position = "none") +
-  labs(x = "Interval", y = "Steps", title = "Mean of steps taken by interval")
+  labs(x = "Interval", y = "Steps", title = "Mean of steps taken by interval",
+       subtitle = "Imputed data")
 ```
 
