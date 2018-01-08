@@ -1,0 +1,32 @@
+---
+title: "Effect of severe weather events in the US"
+author: "Alberto Jaimes"
+date: "January 2018"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```
+
+### Introduction  
+
+### Sypnosis  
+
+### Data Processing  
+
+### Results  
+
+### Across the U.S., which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
+
+### Across the U.S, which types of events have the greatest economic consequences?
+
+### Conclusion  
+
+### Session info  
+
+```{r session_info}
+devtools::session_info()
+```
+
+
