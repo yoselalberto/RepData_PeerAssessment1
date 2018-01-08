@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 library(R.utils)   # function to unzip data
 library(tidyverse) # useful packages for data science
+library(janitor)   # clean variable names
 ```
 
 ### Introduction  
@@ -19,7 +20,7 @@ library(tidyverse) # useful packages for data science
 
 First download the Storm data in the current directory.
 
-```{r data_loading}
+```{r data_gathering}
 url_nooa <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 path_compressed   <- "Storm_data.csv.bz2"
 path_uncompressed <- "Storm_data.csv"
@@ -31,7 +32,11 @@ if (!file.exists(path_compressed)) {
 # unziping
 ```
 ```{r data_reading}
-storm_raw <- readr::read_csv(path_uncompressed)
+storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
+```
+```{r cleansing}
+# select useful variables
+storm_raw %>% select()
 ```
 
 

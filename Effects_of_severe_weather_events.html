@@ -143,7 +143,7 @@ if (!file.exists(path_compressed)) {
   R.utils::bunzip2(path_compressed, destname = path_uncompressed, remove = FALSE)
 }
 # unziping</code></pre>
-<pre class="r"><code>storm_raw &lt;- readr::read_csv(path_uncompressed)</code></pre>
+<pre class="r"><code>storm_raw &lt;- readr::read_csv(path_uncompressed) %&gt;% clean_names()</code></pre>
 <pre><code>## Parsed with column specification:
 ## cols(
 ##   .default = col_character(),
@@ -167,6 +167,9 @@ if (!file.exists(path_compressed)) {
 ##   REFNUM = col_double()
 ## )</code></pre>
 <pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code># select useful variables
+storm_raw %&gt;% select()</code></pre>
+<pre><code>## # A tibble: 902,297 x 0</code></pre>
 </div>
 <div id="data-processing" class="section level3">
 <h3>Data Processing</h3>
