@@ -38,11 +38,13 @@ if (!file.exists(path_compressed)) {
 
 Load the data and clean names.
 
-```{r data_reading}
+```{r data_reading, message = FALSE}
 storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
 ```
 
 #### Selecting useful variables  
+
+The variables with information of the effect are *bgn_date*, the year the event started, *evtype*, the event type, *injuries*, the amount of injured people, *fatalities*, the amount of death people caused by the weather event, *propdmg*, property damage rounded up to three significative digits, *propdmgexp*, magnitude of the property damage, *cropdmg*, crop damage up to three signifivative digits, and *cropdmgexp*, magnitude of the crop damage.
 
 ```{r cleansing}
 # select useful variables, extract year of the events, and coerse variables
@@ -58,16 +60,20 @@ storm_all <- storm_raw %>%
 The next plot shows the yearly numbers of events.
 
 ```{r graph_events_year}
-storm %>% count(date) %>% plot(type = "b", pch = 19, cex = .5, ann = FALSE)
+storm_all %>% count(year) %>% plot(type = "b", pch = 19, cex = .5, ann = FALSE)
 title(xlab = "Year", ylab = "Number of events", main = "Yearly number of events")
 grid()
 ```
 
-The earlier years have fewer events recorded, likely due to a lack of meters; I will do the analysis with events since 1996.
+The earlier years have fewer events recorded, likely due to a lack of recording; I will do the analysis with events since 1996.
 
 ```{r filter_years}
 storm <- filter(storm_all, year >= 1995)
 ```
+
+#### Reshape data to economic effect  
+
+For computing the economic effect some reshaping is useful
 
 
 ### Results  
@@ -97,14 +103,14 @@ df_coersion <- tibble(symbol = symbol_, value = value_)
 
 ```{r actual_value}
 storm %>% 
-  left_join(df_coersion, by = c("propdmgexp" = "symbol")) %>%
-  left_join(df_coersion, by = c("cropdmgexp" = "symbol"))
-  mutate(value = coalesce(value, 0))
+  gather(damage, cost, propdmg, cropdmg) %>% gather(type_exp, magnitude, propdmgexp, cropdmgexp) %>% 
+  left_join(df_coersion, by = c("magnitude" = "symbol")) %>% 
+  mutate(value = ifelse(is.na(value), magnitude, value), value = coalesce(value, "0"))
 
 ```
 
 
-### Across the U.S., which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
+### Across the U.S., which types of events are most harmful with respect to population health?  
 
 ### Across the U.S, which types of events have the greatest economic consequences?
 
