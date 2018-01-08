@@ -5,13 +5,35 @@ date: "January 2018"
 output: html_document
 ---
 
-```{r setup, include = FALSE}
+```{r setup, include = FALSE, messsage = FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+library(R.utils)   # function to unzip data
+library(tidyverse) # useful packages for data science
 ```
 
 ### Introduction  
 
 ### Sypnosis  
+
+### Data loading  
+
+First download the Storm data in the current directory.
+
+```{r data_loading}
+url_nooa <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+path_compressed   <- "Storm_data.csv.bz2"
+path_uncompressed <- "Storm_data.csv"
+# download data if they are not in the working directory, and uncompress it
+if (!file.exists(path_compressed)) {
+  download.file(url = url_nooa, destfile = path_compressed)
+  R.utils::bunzip2(path_compressed, destname = path_uncompressed, remove = FALSE)
+}
+# unziping
+```
+```{r data_reading}
+storm_raw <- readr::read_csv(path_uncompressed)
+```
+
 
 ### Data Processing  
 

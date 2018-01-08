@@ -120,7 +120,7 @@ $(document).ready(function () {
 
 <h1 class="title toc-ignore">Effect of severe weather events in the US</h1>
 <h4 class="author"><em>Alberto Jaimes</em></h4>
-<h4 class="date"><em>2018 January</em></h4>
+<h4 class="date"><em>January 2018</em></h4>
 
 </div>
 
@@ -130,6 +130,43 @@ $(document).ready(function () {
 </div>
 <div id="sypnosis" class="section level3">
 <h3>Sypnosis</h3>
+</div>
+<div id="data-loading" class="section level3">
+<h3>Data loading</h3>
+<p>First download the Storm data in the current directory.</p>
+<pre class="r"><code>url_nooa &lt;- &quot;https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2&quot;
+path_compressed   &lt;- &quot;Storm_data.csv.bz2&quot;
+path_uncompressed &lt;- &quot;Storm_data.csv&quot;
+# download data if they are not in the working directory, and uncompress it
+if (!file.exists(path_compressed)) {
+  download.file(url = url_nooa, destfile = path_compressed)
+  R.utils::bunzip2(path_compressed, destname = path_uncompressed, remove = FALSE)
+}
+# unziping</code></pre>
+<pre class="r"><code>storm_raw &lt;- readr::read_csv(path_uncompressed)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_character(),
+##   STATE__ = col_double(),
+##   COUNTY = col_double(),
+##   BGN_RANGE = col_double(),
+##   COUNTY_END = col_double(),
+##   END_RANGE = col_double(),
+##   LENGTH = col_double(),
+##   WIDTH = col_double(),
+##   F = col_integer(),
+##   MAG = col_double(),
+##   FATALITIES = col_double(),
+##   INJURIES = col_double(),
+##   PROPDMG = col_double(),
+##   CROPDMG = col_double(),
+##   LATITUDE = col_double(),
+##   LONGITUDE = col_double(),
+##   LATITUDE_E = col_double(),
+##   LONGITUDE_ = col_double(),
+##   REFNUM = col_double()
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
 </div>
 <div id="data-processing" class="section level3">
 <h3>Data Processing</h3>
@@ -148,7 +185,6 @@ $(document).ready(function () {
 </div>
 <div id="session-info" class="section level3">
 <h3>Session info</h3>
-<p>The software used were</p>
 <pre class="r"><code>devtools::session_info()</code></pre>
 <pre><code>## Session info -------------------------------------------------------------</code></pre>
 <pre><code>##  setting  value                       
