@@ -19,7 +19,7 @@ library(lubridate) # makes easy handle dates
 
 ### Data Processing  
 
-#### Data loading  
+#### Data downloading  
 
 First download the Storm data in the current directory, and uncompress them, if you haven't.
 
@@ -34,17 +34,75 @@ if (!file.exists(path_compressed)) {
 }
 ```
 
+#### Data loading  
+
 Load the data and clean names.
 
 ```{r data_reading}
 storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
 ```
+
+#### Selecting useful variables  
+
 ```{r cleansing}
-# select useful variables
-storm_raw %>% select()
+# select useful variables, extract year of the events, and coerse variables
+storm_all <- storm_raw %>% 
+  select(bgn_date, evtype, injuries, fatalities, propdmg:cropdmgexp) %>% 
+  mutate(year = year(mdy_hms(bgn_date)), evtype = str_to_title(evtype), 
+         propdmgexp = str_to_lower(propdmgexp), cropdmgexp = str_to_lower(cropdmgexp)) %>%
+  select(-bgn_date)
 ```  
 
+#### Filtering years  
+
+The next plot shows the yearly numbers of events.
+
+```{r graph_events_year}
+storm %>% count(date) %>% plot(type = "b", pch = 19, cex = .5, ann = FALSE)
+title(xlab = "Year", ylab = "Number of events", main = "Yearly number of events")
+grid()
+```
+
+The earlier years have fewer events recorded, likely due to a lack of meters; I will do the analysis with events since 1996.
+
+```{r filter_years}
+storm <- filter(storm_all, year >= 1995)
+```
+
+
 ### Results  
+
+#### Effect on health  
+
+From the National Weather [Service Storm data documentation][documentation] we get that the effects on health are given in the variables *fatalities*, and *injuries*, for fatalities and injuries, respectively.  
+
+```{r effect_health}
+# fatalities
+storm %>% count(evtype, wt = fatalities, sort = T) %>% filter(n > 0)
+# injuries
+storm %>% count(evtype, wt = injuries,   sort = T) %>% filter(n > 0)
+```
+
+#### Economic Effects  
+
+In the [documentation][documentation] we also find that the economic effects are displayed in the variables *propdmg* for the property damage, and *cropdmg* for the crop damage, in order to obtain the true damage we have to multiply they for the magnitude indicated in the *propdmg* for the property damage, and *cropdmgexp* for the crop damage, respectively, the damage is displayed in 2011 dollars.  
+
+The conversion from the magnitued to exponents is the next:
+
+```{r tabla_coersion}
+symbol_ <- c("-", "?", "+", "h", "k", "m", "b")
+value_  <- c(0, 0, 0, 100, 1000, 1e6, 1e9)
+df_coersion <- tibble(symbol = symbol_, value = value_)
+```
+
+```{r actual_value}
+storm %>% 
+  left_join(df_coersion, by = c("propdmgexp" = "symbol")) %>%
+  left_join(df_coersion, by = c("cropdmgexp" = "symbol"))
+  mutate(value = coalesce(value, 0))
+
+```
+
 
 ### Across the U.S., which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?  
 
@@ -59,3 +117,5 @@ devtools::session_info()
 ```
 
 
+
+[documentation]: https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
