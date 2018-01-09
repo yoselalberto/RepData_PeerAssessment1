@@ -1,5 +1,5 @@
 ---
-title: "Effect of severe weather events in the US from 1990 to 2011"
+title: "Health and economic effects of severe weather events in the US from 1996 to 2011"
 author: "Alberto Jaimes"
 date: "January 2018"
 output: html_document
