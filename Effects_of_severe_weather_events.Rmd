@@ -168,8 +168,6 @@ storm_economic <- storm_economic_final %>%
 ### Results  
 
 
-#### Across the U.S., which types of events are most harmful with respect to population health?  
-
 #### Effect on health  
 
 The following panel displays the top ten weather events by the number of deaths, and by fatalities they caused since 1996 until 2011.  
@@ -210,7 +208,7 @@ In one hand *Excessive Heat* is responsible of more deaths than any other type o
 #### Economic Effect  
 
 ```{r effect_economic_creation, fig.align = "center", fig.width = 10, fig.height = 4.5} 
-# top 10, and ordering  K
+# top 10, and ordering
 top_10_damage <- storm_economic %>% count(evtype, wt = damage, sort = T) %>% head(10)
 # subseting  
 storm_economic_ordered <- storm_economic %>%    
@@ -227,7 +225,8 @@ storm_economic_ordered %>%
   theme(legend.position = c(.92, .87))
 ```
 
-Hurrricanes causes more damage than any other event type, by far.  
+Globally, *hurricanes* is the most harmful weather event in terms of economic damage, specially to crops; however, *floods* produced more damage to properties than any other weather event.  
+
 
 ### Conclusion  
 
