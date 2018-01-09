@@ -180,8 +180,9 @@ grid()</code></pre>
 </div>
 <div id="event-type-preprocessing" class="section level4">
 <h4>Event Type Preprocessing</h4>
-<p>The next table displays the top ten weather events in injuries</p>
-<pre class="r"><code>storm_recent %&gt;% count(evtype, wt = injuries, sort = T) %&gt;% rename(events = n) %&gt;% 
+<p>The next table displays the top ten weather events in injuries.</p>
+<pre class="r"><code>storm_recent %&gt;%
+  count(evtype, wt = injuries, sort = T) %&gt;% rename(events = n) %&gt;% 
   head(10) %&gt;% knitr::kable()</code></pre>
 <table>
 <thead>
@@ -242,20 +243,45 @@ grid()</code></pre>
               &quot;\\s+&quot; = &quot; &quot;, &quot;\\.&quot; = &quot;&quot;, &quot;(|)&quot; = &quot;&quot;, &quot;^\\s+&quot; = &quot;&quot;, &quot;\\s+$&quot; = &quot;&quot;)
 # lowercase, them replace patterns, finally coerse evtype to title
 storm_final &lt;- storm_recent %&gt;%
-  mutate(evtype = str_to_lower(evtype) %&gt;%
-           str_replace_all(patterns) %&gt;% str_to_title())</code></pre>
+  mutate(evtype = str_to_lower(evtype) %&gt;% str_replace_all(patterns) %&gt;% str_to_title())</code></pre>
+</div>
+<div id="aggregation-of-effect-on-healt" class="section level4">
+<h4>Aggregation of effect on healt</h4>
 <p>Aggregate total injuries, and fatalities by event type.</p>
 <pre class="r"><code>storm_health &lt;- storm_final %&gt;% 
   group_by(evtype) %&gt;% 
-  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE)) %&gt;% 
-  filter(injuries &gt; 0 | fatalities &gt; 0)</code></pre>
+  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE))</code></pre>
 </div>
 <div id="preprocess-to-economic-effect" class="section level4">
 <h4>Preprocess to economic effect</h4>
-<p>For computing the economic effect some reshaping is useful:</p>
-<pre class="r"><code>storm_economic &lt;- storm_recent %&gt;% 
-  gather(type_damage, cost, propdmg, cropdmg) %&gt;%
-  gather(type_exp, magnitude, propdmgexp, cropdmgexp)</code></pre>
+<p>Reshape storm events to tidy format:</p>
+<pre class="r"><code># reshaping, tidy format
+storm_economic_tidy &lt;- storm_final %&gt;% 
+  select(-injuries, -fatalities) %&gt;% 
+  gather(type_damage, cost, propdmg, cropdmg) %&gt;% 
+  gather(type_mag, magnitude, propdmgexp, cropdmgexp)</code></pre>
+<p>In order to obtain the actual economic effect of the weather events we have to multiply the cost by <span class="math inline">\(10 ^ {magnitude}\)</span>, the damage is displayed in 2011 dollars. First, we coerse the values in <em>magnitude</em> to the appropiate exponent: <span class="math inline">\(0 = 0\)</span>, <span class="math inline">\(k = 3\)</span>, <span class="math inline">\(m = 6\)</span>, <span class="math inline">\(b = 9\)</span>.</p>
+<pre class="r"><code>storm_economic_tidy$magnitude %&gt;% unique</code></pre>
+<pre><code>## [1] &quot;k&quot; NA  &quot;m&quot; &quot;b&quot; &quot;0&quot;</code></pre>
+<pre class="r"><code># replace NA with zeros, coerse variables to exponents
+storm_economic_middle &lt;- storm_economic_tidy %&gt;% 
+  mutate(magnitude = coalesce(magnitude, &quot;0&quot;),
+         magnitude = str_replace_all(magnitude, c(&quot;k&quot; = &quot;3&quot;, &quot;m&quot; = &quot;6&quot;, b = &quot;9&quot;)),
+         magnitude = as.integer(magnitude))</code></pre>
+<p>Now we calculate the actual economic damage by event.</p>
+<pre class="r"><code># function to calculate actual damage
+actual_damage &lt;- function(cost, mag) {
+  if (near(cost, 0)) 0 else cost * 10 ^ mag
+}
+# actual damage by event
+storm_economic_final &lt;- storm_economic_middle %&gt;% 
+  mutate(damage = map2_dbl(cost, magnitude, .f = actual_damage))</code></pre>
+</div>
+<div id="aggregation-of-economic-effect" class="section level4">
+<h4>Aggregation of economic effect</h4>
+<pre class="r"><code>storm_economic &lt;- storm_economic_final %&gt;% 
+  group_by(evtype, type_damage) %&gt;% summarise(damage = sum(damage, na.rm = TRUE)) %&gt;% 
+  arrange(desc(damage)) %&gt;% ungroup()</code></pre>
 </div>
 </div>
 <div id="results" class="section level3">
@@ -296,26 +322,6 @@ storm_health %&gt;% arrange(desc(fatalities)) %&gt;% head(10)</code></pre>
 </div>
 <div id="economic-effects" class="section level4">
 <h4>Economic Effects</h4>
-<p>In the <a href="https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf">documentation</a> we also find that the economic effects are displayed in the variables <em>propdmg</em> for the property damage, and <em>cropdmg</em> for the crop damage, in order to obtain the true damage we have to multiply they for the magnitude indicated in the <em>propdmg</em> for the property damage, and <em>cropdmgexp</em> for the crop damage, respectively, the damage is displayed in 2011 dollars.</p>
-<p>The conversion from the magnitued to exponents is the next:</p>
-<pre class="r"><code>magnitude_ &lt;- c(&quot;-&quot;, &quot;?&quot;, &quot;+&quot;, &quot;h&quot;, &quot;k&quot;, &quot;m&quot;, &quot;b&quot;)
-value_  &lt;- c(0, 0, 0, 2, 3, 6, 9)
-df_coersion &lt;- tibble(magnitude = magnitude_, value = value_)</code></pre>
-<pre class="r"><code># coerse magnitude to integers
-effect_economic_start &lt;- storm_economic %&gt;% 
-  left_join(df_coersion) %&gt;% 
-  mutate(magnitude = ifelse(is.na(value), magnitude, value),
-         magnitude = coalesce(magnitude, &quot;0&quot;) %&gt;% as.integer()) %&gt;% 
-  select(-value)</code></pre>
-<pre><code>## Joining, by = &quot;magnitude&quot;</code></pre>
-<pre class="r"><code># function to compute actual cost
-actual_cost &lt;- function(mag, x) {
-  if (near(x, 0)) 0 
-  else x * 10 ^ mag
-  }
-# calculate actual cost
-effect_economic_middle &lt;- effect_economic_start %&gt;% 
-  mutate(value = map2_dbl(magnitude, cost, actual_cost))</code></pre>
 </div>
 </div>
 <div id="across-the-u.s.-which-types-of-events-are-most-harmful-with-respect-to-population-health" class="section level3">

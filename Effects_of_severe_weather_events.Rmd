@@ -80,10 +80,11 @@ storm_recent <- filter(storm_all, year >= 1996)
 
 #### Event Type Preprocessing   
 
-The next table displays the top ten weather events in injuries
+The next table displays the top ten weather events in injuries.
 
 ```{r top_ten_fatalities}
-storm_recent %>% count(evtype, wt = injuries, sort = T) %>% rename(events = n) %>% 
+storm_recent %>%
+  count(evtype, wt = injuries, sort = T) %>% rename(events = n) %>% 
   head(10) %>% knitr::kable()
 ```
 
@@ -98,26 +99,58 @@ patterns <- c("hurrican.+" = "hurricane", "typhoon" = "hurricane", "wind " = "wi
               "\\s+" = " ", "\\." = "", "(|)" = "", "^\\s+" = "", "\\s+$" = "")
 # lowercase, them replace patterns, finally coerse evtype to title
 storm_final <- storm_recent %>%
-  mutate(evtype = str_to_lower(evtype) %>%
-           str_replace_all(patterns) %>% str_to_title())
+  mutate(evtype = str_to_lower(evtype) %>% str_replace_all(patterns) %>% str_to_title())
 ```
+
+
+#### Aggregation of effect on healt  
+
 Aggregate total injuries, and fatalities by event type.
 
-```{r aggregation_healt}
+```{r aggregation_health}
 storm_health <- storm_final %>% 
   group_by(evtype) %>% 
-  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE)) %>% 
-  filter(injuries > 0 | fatalities > 0)
+  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE))
 ```
 
 
 #### Preprocess to economic effect  
 
-For computing the economic effect some reshaping is useful:  
-```{r}
-storm_economic <- storm_recent %>% 
-  gather(type_damage, cost, propdmg, cropdmg) %>%
-  gather(type_exp, magnitude, propdmgexp, cropdmgexp)
+Reshape storm events to tidy format:
+```{r reshaping_economic}
+# reshaping, tidy format
+storm_economic_tidy <- storm_final %>% 
+  select(-injuries, -fatalities) %>% 
+  gather(type_damage, cost, propdmg, cropdmg) %>% 
+  gather(type_mag, magnitude, propdmgexp, cropdmgexp)
+```  
+
+In order to obtain the actual economic effect of the weather events we have to multiply the cost by  $10 ^ {magnitude}$, the damage is displayed in 2011 dollars. First, we coerse the values in *magnitude* to the appropiate exponent: $0 = 0$, $k = 3$, $m = 6$, $b = 9$.
+
+```{r values_magnitude}
+storm_economic_tidy$magnitude %>% unique
+# replace NA with zeros, coerse variables to exponents
+storm_economic_middle <- storm_economic_tidy %>% 
+  mutate(magnitude = coalesce(magnitude, "0"),
+         magnitude = str_replace_all(magnitude, c("k" = "3", "m" = "6", b = "9")),
+         magnitude = as.integer(magnitude))
+``` 
+Now we calculate the actual economic damage by event.
+```{r calculate_economic_damage}
+# function to calculate actual damage
+actual_damage <- function(cost, mag) {
+  if (near(cost, 0)) 0 else cost * 10 ^ mag
+}
+# actual damage by event
+storm_economic_final <- storm_economic_middle %>% 
+  mutate(damage = map2_dbl(cost, magnitude, .f = actual_damage))
+```
+
+#### Aggregation of economic effect
+```{r aggregation_economic}
+storm_economic <- storm_economic_final %>% 
+  group_by(evtype, type_damage) %>% summarise(damage = sum(damage, na.rm = TRUE)) %>% 
+  arrange(desc(damage)) %>% ungroup()
 ```
 
 
@@ -137,33 +170,6 @@ storm_health %>% arrange(desc(fatalities)) %>% head(10)
 
 
 #### Economic Effects  
-
-In the [documentation][documentation] we also find that the economic effects are displayed in the variables *propdmg* for the property damage, and *cropdmg* for the crop damage, in order to obtain the true damage we have to multiply they for the magnitude indicated in the *propdmg* for the property damage, and *cropdmgexp* for the crop damage, respectively, the damage is displayed in 2011 dollars.  
-
-The conversion from the magnitued to exponents is the next:
-
-```{r tabla_coersion}
-magnitude_ <- c("-", "?", "+", "h", "k", "m", "b")
-value_  <- c(0, 0, 0, 2, 3, 6, 9)
-df_coersion <- tibble(magnitude = magnitude_, value = value_)
-```
-
-```{r actual_value}
-# coerse magnitude to integers
-effect_economic_start <- storm_economic %>% 
-  left_join(df_coersion) %>% 
-  mutate(magnitude = ifelse(is.na(value), magnitude, value),
-         magnitude = coalesce(magnitude, "0") %>% as.integer()) %>% 
-  select(-value)
-# function to compute actual cost
-actual_cost <- function(mag, x) {
-  if (near(x, 0)) 0 
-  else x * 10 ^ mag
-  }
-# calculate actual cost
-effect_economic_middle <- effect_economic_start %>% 
-  mutate(value = map2_dbl(magnitude, cost, actual_cost))
-```
 
 
 ### Across the U.S., which types of events are most harmful with respect to population health?  
