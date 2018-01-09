@@ -5,6 +5,14 @@ date: "January 2018"
 output: html_document
 ---
 
+### Introduction  
+
+### Sypnosis  
+
+### Data Processing  
+
+#### Settings  
+
 ```{r setup, include = FALSE, messsage = FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 library(R.utils)   # function to unzip data
@@ -13,15 +21,7 @@ library(janitor)   # clean variable names
 library(lubridate) # makes easy handle dates
 ```
 
-### Introduction  
-
-### Sypnosis  
-
-### Data Processing  
-
 #### Data downloading  
-
-First download the Storm data in the current directory, and uncompress them, if you haven't.
 
 ```{r data_gathering}
 url_nooa <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -36,9 +36,9 @@ if (!file.exists(path_compressed)) {
 
 #### Data loading  
 
-Load the data and clean names.
 
 ```{r data_reading, message = FALSE}
+# loading, then cleaning names
 storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
 ```
 
@@ -52,7 +52,7 @@ storm_all <- storm_raw %>%
   select(bgn_date, evtype, injuries, fatalities, propdmg:cropdmgexp) %>% 
   mutate(year = year(mdy_hms(bgn_date)), evtype = str_to_title(evtype), 
          propdmgexp = str_to_lower(propdmgexp), cropdmgexp = str_to_lower(cropdmgexp)) %>%
-  select(-bgn_date)
+  select(-bgn_date) 
 ```  
 
 #### Filtering years  
@@ -62,23 +62,53 @@ The next plot shows the yearly numbers of events.
 ```{r graph_events_year}
 storm_all %>% count(year) %>% plot(type = "b", pch = 19, cex = .5, ann = FALSE)
 title(xlab = "Year", ylab = "Number of events", main = "Yearly number of events")
+abline(v = 1996, col = "forestgreen")
 grid()
 ```
 
 The earlier years have fewer events recorded, likely due to a lack of recording; I will do the analysis with events since 1996.
 
 ```{r filter_years}
-storm <- filter(storm_all, year >= 1995)
+storm_recent <- filter(storm_all, year >= 1995)
 ```
 
-#### Reshape data to economic effect  
+#### Join Event type  
+
+Some events are splited in several ways, e. g. *Hurricane* and *Hurricane/Typhoon*, in this steps I gather many description of events in only one.  
+
+First I lowercase all descriptions, then I remove typos, and finally remove extra espaces
+
+```{r process_gather_events}
+patterns <- c("hurrican.+" = "hurricane", "typhoon" = "hurricane", "wind " = "winds ",
+              "heavy rain.+" = "heavy rain", "rains " = "rain", "hvy" = "heavy",
+              "tstm" = "thunderstorm", "thundertorm" = "thunderstorm", 
+              "thunderstormw" = "thunderstorm", "thunderstorms" = "thunderstorm",
+              "thundeerstorm" = "thunderstorm", "thunderestorm" = "thunderstorm",
+              "\\s+" = " ", "\\." = "", "(|)" = "")
+# replacing
+storm_final <- storm_recent %>%
+  mutate(evtype = str_to_lower(evtype) %>% str_replace_all(patterns) %>% str_trim(side = "both"),
+         evtype = str_to_title(evtype))
+```
+Aggregate total injuries, and fatalities by event type.
+
+```{r aggregation_healt}
+storm_health <- storm_final %>% 
+  group_by(evtype) %>% 
+  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE)) %>% 
+  filter(injuries > 0 | fatalities > 0)
+```
+
+
+
+#### Preprocess to economic effect  
 
 For computing the economic effect some reshaping is useful:  
 ```{r}
-storm_economic <- storm %>% 
-  gather(type_damage, cost, propdmg, cropdmg) %>% gather(type_exp, magnitude, propdmgexp, cropdmgexp)
+storm_economic <- storm_recent %>% 
+  gather(type_damage, cost, propdmg, cropdmg) %>%
+  gather(type_exp, magnitude, propdmgexp, cropdmgexp)
 ```
-
 
 
 ### Results  
@@ -89,9 +119,9 @@ From the National Weather [Service Storm data documentation][documentation] we g
 
 ```{r effect_health}
 # fatalities
-storm %>% count(evtype, wt = fatalities, sort = T) %>% filter(n > 0)
+storm_health %>% arrange(desc(injuries)) %>% head(10)
 # injuries
-storm %>% count(evtype, wt = injuries,   sort = T) %>% filter(n > 0)
+storm_health %>% arrange(desc(fatalities)) %>% head(10)
 ```
 
 #### Economic Effects  
@@ -101,16 +131,17 @@ In the [documentation][documentation] we also find that the economic effects are
 The conversion from the magnitued to exponents is the next:
 
 ```{r tabla_coersion}
-symbol_ <- c("-", "?", "+", "h", "k", "m", "b")
+magnitude_ <- c("-", "?", "+", "h", "k", "m", "b")
 value_  <- c(0, 0, 0, 2, 3, 6, 9)
-df_coersion <- tibble(symbol = symbol_, value = value_)
+df_coersion <- tibble(magnitude = magnitude_, value = value_)
 ```
 
 ```{r actual_value}
 # coerse magnitude to integers
 effect_economic_start <- storm_economic %>% 
-  left_join(df_coersion, by = c("magnitude" = "symbol")) %>% 
-  mutate(magnitude = ifelse(is.na(value), magnitude, value), magnitude = coalesce(magnitude, "0") %>% as.integer()) %>% 
+  left_join(df_coersion) %>% 
+  mutate(magnitude = ifelse(is.na(value), magnitude, value),
+         magnitude = coalesce(magnitude, "0") %>% as.integer()) %>% 
   select(-value)
 # function to compute actual cost
 actual_cost <- function(mag, x) {
