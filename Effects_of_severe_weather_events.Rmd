@@ -19,6 +19,7 @@ library(R.utils)   # function to unzip data
 library(tidyverse) # useful packages for data science     
 library(janitor)   # clean variable names
 library(lubridate) # makes easy handle dates
+library(gridExtra) # help for plotting
 ```
 
 
@@ -148,7 +149,8 @@ Aggregate total injuries, and fatalities by event type.
 ```{r aggregation_health}
 storm_health <- storm_final %>% 
   group_by(evtype) %>% 
-  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE))
+  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE)) %>% 
+  arrange(desc(fatalities))
 ```
 
 
@@ -166,25 +168,49 @@ storm_economic <- storm_economic_final %>%
 ### Results  
 
 
+#### Across the U.S., which types of events are most harmful with respect to population health?  
+
 #### Effect on health  
 
-From the National Weather [Service Storm data documentation][documentation] we get that the effects on health are given in the variables *fatalities*, and *injuries*, for fatalities and injuries, respectively.  
+First I create the graphs.  
 
-```{r effect_health}
+```{r effect_health_creation}
+# ordering
+storm_health_ordered <- storm_health %>%
+  mutate(evtype = factor(evtype, levels = evtype))
 # fatalities
-storm_health %>% arrange(desc(injuries)) %>% head(10)  
+gg_fatalities <- storm_health_ordered %>%  head(10) %>% 
+  ggplot(aes(evtype, fatalities, fill = evtype)) +
+  geom_bar(stat = "identity") +
+  labs(x = NULL, y = "Fatalities",
+       title = "Total of fatalities by event type during 1996 - 2011") + 
+  scale_fill_brewer(palette = "Paired") +
+  theme(legend.position = "none")
 # injuries
-storm_health %>% arrange(desc(fatalities)) %>% head(10)
+gg_injuries <- storm_health_ordered %>%
+  arrange(desc(injuries)) %>% head(10) %>% 
+  ggplot(aes(evtype, injuries, fill = evtype)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Event type", y = "Injuries") +
+  ggtitle("Total of injuries by event type during 1996 - 2011") + 
+  scale_fill_brewer(palette = "Paired") +
+  theme(legend.position = "none")
 ```
+```{r display_health, fig.align = "center", fig.width = 8}
+# arrange both barplots
+gridExtra::grid.arrange(gg_fatalities, gg_injuries, nrow = 2)
+```
+
+
+The barplots displays the top ten of events by fatalities, up, and the top ten events by injuires, bottom. *Excessive Heat* causes more deaths than any other event; *Tornado causes more injuires* than any other event.
+
+
+#### Across the U.S,  which types of events have the greatest economic consequences?  
 
 
 #### Economic Effects  
 
 
-### Across the U.S., which types of events are most harmful with respect to population health?  
-
-
-### Across the U.S,  which types of events have the greatest economic consequences?  
 
 
 ### Conclusion  
