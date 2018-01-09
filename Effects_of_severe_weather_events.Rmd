@@ -73,7 +73,12 @@ storm <- filter(storm_all, year >= 1995)
 
 #### Reshape data to economic effect  
 
-For computing the economic effect some reshaping is useful
+For computing the economic effect some reshaping is useful:  
+```{r}
+storm_economic <- storm %>% 
+  gather(type_damage, cost, propdmg, cropdmg) %>% gather(type_exp, magnitude, propdmgexp, cropdmgexp)
+```
+
 
 
 ### Results  
@@ -97,22 +102,30 @@ The conversion from the magnitued to exponents is the next:
 
 ```{r tabla_coersion}
 symbol_ <- c("-", "?", "+", "h", "k", "m", "b")
-value_  <- c(0, 0, 0, 100, 1000, 1e6, 1e9)
+value_  <- c(0, 0, 0, 2, 3, 6, 9)
 df_coersion <- tibble(symbol = symbol_, value = value_)
 ```
 
 ```{r actual_value}
-storm %>% 
-  gather(damage, cost, propdmg, cropdmg) %>% gather(type_exp, magnitude, propdmgexp, cropdmgexp) %>% 
+# coerse magnitude to integers
+effect_economic_start <- storm_economic %>% 
   left_join(df_coersion, by = c("magnitude" = "symbol")) %>% 
-  mutate(value = ifelse(is.na(value), magnitude, value), value = coalesce(value, "0"))
-
+  mutate(magnitude = ifelse(is.na(value), magnitude, value), magnitude = coalesce(magnitude, "0") %>% as.integer()) %>% 
+  select(-value)
+# function to compute actual cost
+actual_cost <- function(mag, x) {
+  if (near(x, 0)) 0 
+  else x * 10 ^ mag
+  }
+# calculate actual cost
+effect_economic_middle <- effect_economic_start %>% 
+  mutate(value = map2_dbl(magnitude, cost, actual_cost))
 ```
 
 
 ### Across the U.S., which types of events are most harmful with respect to population health?  
 
-### Across the U.S, which types of events have the greatest economic consequences?
+### Across the U.S,  which types of events have the greatest economic consequences?
 
 ### Conclusion  
 
