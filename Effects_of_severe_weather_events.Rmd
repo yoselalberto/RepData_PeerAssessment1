@@ -172,7 +172,7 @@ storm_economic <- storm_economic_final %>%
 
 #### Effect on health  
 
-First I create the graphs.  
+The following panel displays the top ten weather events by the number of deaths, and by fatalities they caused since 1996 until 2011.  
 
 ```{r effect_health_creation}
 # ordering
@@ -201,10 +201,7 @@ gg_injuries <- storm_health_ordered %>%
 grid.arrange(gg_fatalities, gg_injuries, nrow = 2)     
 ```
 
-
-The barplots displays the top ten of events by fatalities, up, and the top ten events by injuires, bottom. *Excessive Heat* causes more deaths than any other event; *Tornado causes more injuires* than any other event.  
-
-The weather events caused more injuries than deaths.  
+In one hand *Excessive Heat* is responsible of more deaths than any other type of weather event; on the other hand, *Tornado* lead to more injuires than any other weather event.  
 
 
 #### Across the U.S,  which types of events have the greatest economic consequences?  
