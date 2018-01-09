@@ -13,7 +13,7 @@ output: html_document
 
 #### Settings  
 
-```{r setup, include = FALSE, messsage = FALSE}
+```{r setup, include = TRUE, messsage = FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
 library(R.utils)   # function to unzip data
 library(tidyverse) # useful packages for data science
@@ -23,7 +23,7 @@ library(lubridate) # makes easy handle dates
 
 #### Data downloading  
 
-```{r data_gathering}
+```{r data_downloading}
 url_nooa <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 path_compressed   <- "Storm_data.csv.bz2"
 path_uncompressed <- "Storm_data.csv"
@@ -35,7 +35,6 @@ if (!file.exists(path_compressed)) {
 ```
 
 #### Data loading  
-
 
 ```{r data_reading, message = FALSE}
 # loading, then cleaning names
