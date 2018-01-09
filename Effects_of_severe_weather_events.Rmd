@@ -5,9 +5,6 @@ date: "January 2018"
 output: html_document
 ---
 
-### Introduction  
-
-
 ### Sypnosis  
 
 
@@ -47,6 +44,13 @@ storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
 ```
 
 
+#### Data structure  
+
+```{r storm_str}
+glimpse(storm_raw)
+```
+
+
 #### Selecting useful variables  
 
 The variables with information of the effect are **bgn_date**, the year the event started, **evtype**, the event type, **injuries**, the amount of injured people, **fatalities**, the toll caused by the weather event, **propdmg**, property damage rounded up to three significative digits, **propdmgexp**, magnitude of the property damage, **cropdmg**, crop damage up to three signifivative digits, and **cropdmgexp**, magnitude of the crop damage.
@@ -61,7 +65,7 @@ storm_all <- storm_raw %>%
 ```  
 
 
-#### Filtering years  
+#### Filter observations  
 
 The yearly numbers of events is shown in the next plot.
 
@@ -72,10 +76,11 @@ abline(v = 1996, col = "forestgreen")
 grid()
 ```
 
-The earlier years have fewer events recorded, likely due to a lack of recording; I will do the analysis with events since 1996.
+The earlier years have fewer events recorded, likely due to a lack of recording; I will do the analysis with events since 1996, and with values bigger than zero.
 
-```{r filter_years}
-storm_recent <- filter(storm_all, year >= 1996)
+```{r filter_records}
+storm_recent <- filter(storm_all, year >= 1996, 
+                       propdmg > 0 | cropdmg > 0 | injuries > 0 | fatalities > 0)
 ```
 
 #### Event Type Preprocessing   
@@ -100,17 +105,6 @@ patterns <- c("hurrican.+" = "hurricane", "typhoon" = "hurricane", "wind " = "wi
 # lowercase, them replace patterns, finally coerse evtype to title
 storm_final <- storm_recent %>%
   mutate(evtype = str_to_lower(evtype) %>% str_replace_all(patterns) %>% str_to_title())
-```
-
-
-#### Aggregation of effect on healt  
-
-Aggregate total injuries, and fatalities by event type.
-
-```{r aggregation_health}
-storm_health <- storm_final %>% 
-  group_by(evtype) %>% 
-  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE))
 ```
 
 
@@ -144,9 +138,24 @@ actual_damage <- function(cost, mag) {
 # actual damage by event
 storm_economic_final <- storm_economic_middle %>% 
   mutate(damage = map2_dbl(cost, magnitude, .f = actual_damage))
+```  
+
+
+#### Aggregation of effect on health  
+
+Aggregate total injuries, and fatalities by event type.
+
+```{r aggregation_health}
+storm_health <- storm_final %>% 
+  group_by(evtype) %>% 
+  summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE))
 ```
 
-#### Aggregation of economic effect
+
+#### Aggregation of economic effect  
+
+Total economic damage by event type and kind of damage, either property or crop.
+
 ```{r aggregation_economic}
 storm_economic <- storm_economic_final %>% 
   group_by(evtype, type_damage) %>% summarise(damage = sum(damage, na.rm = TRUE)) %>% 
