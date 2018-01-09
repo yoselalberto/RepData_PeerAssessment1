@@ -183,7 +183,7 @@ gg_fatalities <- storm_health_ordered %>%  head(10) %>%
   ggplot(aes(evtype, fatalities, fill = evtype)) +
   geom_bar(stat = "identity") +
   labs(x = NULL, y = "Fatalities",
-       title = "Total of fatalities by event type during 1996 - 2011") + 
+       title = "Total of fatalities by Event Type during 1996 - 2011") + 
   scale_fill_brewer(palette = "Paired") +
   theme(legend.position = "none")
 # injuries
@@ -192,26 +192,45 @@ gg_injuries <- storm_health_ordered %>%
   ggplot(aes(evtype, injuries, fill = evtype)) +
   geom_bar(stat = "identity") +
   labs(x = "Event type", y = "Injuries") +
-  ggtitle("Total of injuries by event type during 1996 - 2011") + 
+  ggtitle("Total of injuries by Event Type during 1996 - 2011") + 
   scale_fill_brewer(palette = "Paired") +
   theme(legend.position = "none")
 ```
-```{r display_health, fig.align = "center", fig.width = 8}
-# arrange both barplots
-gridExtra::grid.arrange(gg_fatalities, gg_injuries, nrow = 2)
+```{r display_health, fig.align = "center", fig.width = 10, fig.height = 6}
+# arrange both barplots  
+grid.arrange(gg_fatalities, gg_injuries, nrow = 2)     
 ```
 
 
-The barplots displays the top ten of events by fatalities, up, and the top ten events by injuires, bottom. *Excessive Heat* causes more deaths than any other event; *Tornado causes more injuires* than any other event.
+The barplots displays the top ten of events by fatalities, up, and the top ten events by injuires, bottom. *Excessive Heat* causes more deaths than any other event; *Tornado causes more injuires* than any other event.  
+
+The weather events caused more injuries than deaths.  
 
 
 #### Across the U.S,  which types of events have the greatest economic consequences?  
 
 
-#### Economic Effects  
+#### Economic Effect  
 
+```{r effect_economic_creation, fig.align = "center", fig.width = 10, fig.height = 4.5} 
+# top 10, and ordering  K
+top_10_damage <- storm_economic %>% count(evtype, wt = damage, sort = T) %>% head(10)
+# subseting  
+storm_economic_ordered <- storm_economic %>%    
+  semi_join(top_10_damage, by = "evtype") %>% 
+  mutate(evtype = factor(evtype, levels = top_10_damage$evtype),
+         type_damage = ifelse(type_damage == "cropdmg", "Crop", "Property"))
+# plotting
+storm_economic_ordered %>%
+  ggplot(aes(evtype, damage, fill = type_damage)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "Event type", y = "Damage in dollars", fill = "Affected") +
+  ggtitle("Total economic damage by Event Type during 1996 - 2011") +
+  theme(legend.position = c(.92, .87))
+```
 
-
+Hurrricanes causes more damage than any other event type, by far.  
 
 ### Conclusion  
 
