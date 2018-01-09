@@ -7,19 +7,23 @@ output: html_document
 
 ### Introduction  
 
+
 ### Sypnosis  
+
 
 ### Data Processing  
 
+
 #### Settings  
 
-```{r setup, include = TRUE, messsage = FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```{r setup, echo = TRUE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE) 
 library(R.utils)   # function to unzip data
-library(tidyverse) # useful packages for data science
+library(tidyverse) # useful packages for data science     
 library(janitor)   # clean variable names
 library(lubridate) # makes easy handle dates
 ```
+
 
 #### Data downloading  
 
@@ -34,6 +38,7 @@ if (!file.exists(path_compressed)) {
 }
 ```
 
+
 #### Data loading  
 
 ```{r data_reading, message = FALSE}
@@ -41,12 +46,13 @@ if (!file.exists(path_compressed)) {
 storm_raw <- readr::read_csv(path_uncompressed) %>% clean_names()
 ```
 
+
 #### Selecting useful variables  
 
-The variables with information of the effect are *bgn_date*, the year the event started, *evtype*, the event type, *injuries*, the amount of injured people, *fatalities*, the amount of death people caused by the weather event, *propdmg*, property damage rounded up to three significative digits, *propdmgexp*, magnitude of the property damage, *cropdmg*, crop damage up to three signifivative digits, and *cropdmgexp*, magnitude of the crop damage.
+The variables with information of the effect are **bgn_date**, the year the event started, **evtype**, the event type, **injuries**, the amount of injured people, **fatalities**, the toll caused by the weather event, **propdmg**, property damage rounded up to three significative digits, **propdmgexp**, magnitude of the property damage, **cropdmg**, crop damage up to three signifivative digits, and **cropdmgexp**, magnitude of the crop damage.
 
-```{r cleansing}
-# select useful variables, extract year of the events, and coerse variables
+```{r select_variables}
+# select useful variables, extract year of the events, and transform character variables
 storm_all <- storm_raw %>% 
   select(bgn_date, evtype, injuries, fatalities, propdmg:cropdmgexp) %>% 
   mutate(year = year(mdy_hms(bgn_date)), evtype = str_to_title(evtype), 
@@ -54,11 +60,12 @@ storm_all <- storm_raw %>%
   select(-bgn_date) 
 ```  
 
+
 #### Filtering years  
 
-The next plot shows the yearly numbers of events.
+The yearly numbers of events is shown in the next plot.
 
-```{r graph_events_year}
+```{r graph_events_year, fig.align = "center"}
 storm_all %>% count(year) %>% plot(type = "b", pch = 19, cex = .5, ann = FALSE)
 title(xlab = "Year", ylab = "Number of events", main = "Yearly number of events")
 abline(v = 1996, col = "forestgreen")
@@ -68,26 +75,31 @@ grid()
 The earlier years have fewer events recorded, likely due to a lack of recording; I will do the analysis with events since 1996.
 
 ```{r filter_years}
-storm_recent <- filter(storm_all, year >= 1995)
+storm_recent <- filter(storm_all, year >= 1996)
 ```
 
-#### Join Event type  
+#### Event Type Preprocessing   
 
-Some events are splited in several ways, e. g. *Hurricane* and *Hurricane/Typhoon*, in this steps I gather many description of events in only one.  
+The next table displays the top ten weather events in injuries
 
-First I lowercase all descriptions, then I remove typos, and finally remove extra espaces
+```{r top_ten_fatalities}
+storm_recent %>% count(evtype, wt = injuries, sort = T) %>% rename(events = n) %>% 
+  head(10) %>% knitr::kable()
+```
 
-```{r process_gather_events}
+*Ttsm Wind* and *Thunderstorm Wind* correspond to the same event type; nevertheles, their records are splited in two different *evtype*. This behaviour is repeated in other cases, e. g. *Hurricane* and *Hurricane/Typhoon*. In this step I gather the several forms of each **evtype**.  
+
+```{r process_evtype}
 patterns <- c("hurrican.+" = "hurricane", "typhoon" = "hurricane", "wind " = "winds ",
               "heavy rain.+" = "heavy rain", "rains " = "rain", "hvy" = "heavy",
               "tstm" = "thunderstorm", "thundertorm" = "thunderstorm", 
               "thunderstormw" = "thunderstorm", "thunderstorms" = "thunderstorm",
               "thundeerstorm" = "thunderstorm", "thunderestorm" = "thunderstorm",
-              "\\s+" = " ", "\\." = "", "(|)" = "")
-# replacing
+              "\\s+" = " ", "\\." = "", "(|)" = "", "^\\s+" = "", "\\s+$" = "")
+# lowercase, them replace patterns, finally coerse evtype to title
 storm_final <- storm_recent %>%
-  mutate(evtype = str_to_lower(evtype) %>% str_replace_all(patterns) %>% str_trim(side = "both"),
-         evtype = str_to_title(evtype))
+  mutate(evtype = str_to_lower(evtype) %>%
+           str_replace_all(patterns) %>% str_to_title())
 ```
 Aggregate total injuries, and fatalities by event type.
 
@@ -97,7 +109,6 @@ storm_health <- storm_final %>%
   summarise(injuries = sum(injuries, na.rm = TRUE), fatalities = sum(fatalities, na.rm = TRUE)) %>% 
   filter(injuries > 0 | fatalities > 0)
 ```
-
 
 
 #### Preprocess to economic effect  
@@ -112,16 +123,18 @@ storm_economic <- storm_recent %>%
 
 ### Results  
 
+
 #### Effect on health  
 
 From the National Weather [Service Storm data documentation][documentation] we get that the effects on health are given in the variables *fatalities*, and *injuries*, for fatalities and injuries, respectively.  
 
 ```{r effect_health}
 # fatalities
-storm_health %>% arrange(desc(injuries)) %>% head(10)
+storm_health %>% arrange(desc(injuries)) %>% head(10)  
 # injuries
 storm_health %>% arrange(desc(fatalities)) %>% head(10)
 ```
+
 
 #### Economic Effects  
 
@@ -155,16 +168,18 @@ effect_economic_middle <- effect_economic_start %>%
 
 ### Across the U.S., which types of events are most harmful with respect to population health?  
 
-### Across the U.S,  which types of events have the greatest economic consequences?
+
+### Across the U.S,  which types of events have the greatest economic consequences?  
+
 
 ### Conclusion  
+
 
 ### Session info  
 
 ```{r session_info}
 devtools::session_info()
-```
-
+```  
 
 
 [documentation]: https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf
